@@ -1,11 +1,11 @@
 module pdf-to-webpage
 
-go 1.24
+go 1.25.0
 
 require (
 	github.com/chai2010/webp v1.4.0
 	github.com/gen2brain/go-fitz v1.24.14
-	golang.org/x/image v0.23.0
+	golang.org/x/image v0.38.0
 )
 
 require (
