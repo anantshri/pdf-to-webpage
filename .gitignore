@@ -1,0 +1,23 @@
+# Binaries
+pdf-to-webpage
+*.exe
+
+# Build output
+/dist/
+
+# Go
+*.o
+*.a
+*.so
+*.dylib
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
