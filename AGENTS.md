@@ -15,7 +15,7 @@ CGO is required — do not attempt `CGO_ENABLED=0` builds.
 ## Module info
 
 - **Module:** `github.com/anantshri/pdf-to-webpage`
-- **Go version:** 1.24
+- **Go version:** 1.25
 
 ## Dependencies
 

@@ -17,7 +17,7 @@ Convert PDF presentations into self-contained, full-width slide viewer webpages.
 
 ## Prerequisites
 
-- **Go 1.24+**
+- **Go 1.25+**
 - **C compiler** (GCC or Clang) — required for CGO (MuPDF and libwebp)
 
 ## Installation
