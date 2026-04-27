@@ -26,7 +26,12 @@ jobs:
       - name: Build
         env:
           CGO_ENABLED: 1
-        run: go build -o pdf-to-webpage .
+        run: |
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            go build -ldflags="-extldflags=-Wl,-no_warn_duplicate_libraries" -o pdf-to-webpage .
+          else
+            go build -o pdf-to-webpage .
+          fi
 
       - name: Test
         run: go test ./...

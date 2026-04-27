@@ -27,14 +27,16 @@ Build from source:
 ```bash
 git clone https://github.com/anantshri/pdf-to-webpage.git
 cd pdf-to-webpage
-CGO_ENABLED=1 go build -o pdf-to-webpage .
+CGO_ENABLED=1 go build -ldflags="-extldflags=-Wl,-no_warn_duplicate_libraries" -o pdf-to-webpage .
 ```
 
 Or install directly:
 
 ```bash
-CGO_ENABLED=1 go install github.com/anantshri/pdf-to-webpage@latest
+CGO_ENABLED=1 go install -ldflags="-extldflags=-Wl,-no_warn_duplicate_libraries" github.com/anantshri/pdf-to-webpage@latest
 ```
+
+> The `-ldflags` arg silences a harmless macOS linker warning about duplicate `-lm` from CGO deps. On Linux/other platforms you can drop it.
 
 ## Usage
 
@@ -95,7 +97,7 @@ cd output-dir && python3 -m http.server
 
 ```bash
 # Build
-CGO_ENABLED=1 go build -o pdf-to-webpage .
+CGO_ENABLED=1 go build -ldflags="-extldflags=-Wl,-no_warn_duplicate_libraries" -o pdf-to-webpage .
 
 # Static analysis
 go vet ./...
@@ -108,6 +110,14 @@ go vet ./...
 | [gen2brain/go-fitz](https://github.com/gen2brain/go-fitz) | PDF rendering via MuPDF (CGO) |
 | [chai2010/webp](https://github.com/chai2010/webp) | WebP encoding via libwebp (CGO) |
 | [golang.org/x/image](https://pkg.go.dev/golang.org/x/image) | CatmullRom image downscaling |
+
+## Acknowledgements
+
+Hat tip to [anantshri/hugo-techie-personal](https://github.com/anantshri/hugo-techie-personal) for the initial idea on how to approach this.
+
+## 🤖 AI-Assisted Development
+
+This project was developed with the assistance of AI tools, most notably Cursor IDE, Claude Code. These tools helped accelerate development and improve velocity. All AI-generated code has been carefully reviewed and validated through human inspection to ensure it aligns with the project's intended functionality and quality standards.
 
 ## License
 

@@ -51,7 +51,12 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
           CC: ${{ matrix.cc }}
         run: |
-          go build -trimpath -ldflags="-s -w" -o pdf-to-webpage .
+          if [ "${{ matrix.goos }}" = "darwin" ]; then
+            LDFLAGS='-s -w -extldflags=-Wl,-no_warn_duplicate_libraries'
+          else
+            LDFLAGS='-s -w'
+          fi
+          go build -trimpath -ldflags="$LDFLAGS" -o pdf-to-webpage .
 
       - name: Compress with UPX (Linux only)
         if: matrix.goos == 'linux'
