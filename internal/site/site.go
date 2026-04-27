@@ -11,7 +11,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"pdf-to-webpage/internal/assets"
+	"github.com/anantshri/pdf-to-webpage/internal/assets"
 )
 
 // Slide is one entry passed to the HTML template.

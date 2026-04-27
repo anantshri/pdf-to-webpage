@@ -15,8 +15,8 @@ import (
 	"strings"
 	"unicode"
 
-	"pdf-to-webpage/internal/render"
-	"pdf-to-webpage/internal/site"
+	"github.com/anantshri/pdf-to-webpage/internal/render"
+	"github.com/anantshri/pdf-to-webpage/internal/site"
 )
 
 const pdfDownloadName = "slides.pdf"

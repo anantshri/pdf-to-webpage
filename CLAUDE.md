@@ -7,7 +7,7 @@ For full project context, see [AGENTS.md](AGENTS.md).
 - **Build:** `CGO_ENABLED=1 go build -o pdf-to-webpage .`
 - **Vet:** `go vet ./...`
 - **CGO is mandatory** — go-fitz (MuPDF) and chai2010/webp (libwebp) both require it
-- Go 1.24, module name `pdf-to-webpage`
+- Go 1.24, module name `github.com/anantshri/pdf-to-webpage`
 
 ## Architecture
 

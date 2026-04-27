@@ -1,4 +1,4 @@
-module pdf-to-webpage
+module github.com/anantshri/pdf-to-webpage
 
 go 1.24
 

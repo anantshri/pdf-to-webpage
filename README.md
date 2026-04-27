@@ -25,7 +25,7 @@ Convert PDF presentations into self-contained, full-width slide viewer webpages.
 Build from source:
 
 ```bash
-git clone https://github.com/user/pdf-to-webpage.git
+git clone https://github.com/anantshri/pdf-to-webpage.git
 cd pdf-to-webpage
 CGO_ENABLED=1 go build -o pdf-to-webpage .
 ```
@@ -33,7 +33,7 @@ CGO_ENABLED=1 go build -o pdf-to-webpage .
 Or install directly:
 
 ```bash
-CGO_ENABLED=1 go install ./.
+CGO_ENABLED=1 go install github.com/anantshri/pdf-to-webpage@latest
 ```
 
 ## Usage
