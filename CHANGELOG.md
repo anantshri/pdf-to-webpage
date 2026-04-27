@@ -4,6 +4,19 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] — 2026-04-27
+
+CI / release pipeline hardening. No runtime or behaviour changes to the CLI or the rendered viewer.
+
+### Changed
+
+- **Release workflow now uploads to a draft release.** The `softprops/action-gh-release` step is configured with `draft: true`, making it compatible with GitHub's immutable releases setting — the maintainer creates a draft release manually, the workflow attaches the built `.tar.gz` binaries to that draft on tag push, and the maintainer publishes when ready.
+- **macOS release runners pinned to current images.** `macos-13` → `macos-26-intel` for `darwin/amd64`; `macos-latest` → `macos-26` for `darwin/arm64` (reproducibility — no longer floats with the `macos-latest` alias).
+
+### Security
+
+- **Least-privilege `GITHUB_TOKEN` on both workflows.** Workflow-level default is now `contents: read`; `release.yml`'s `release` job is the only place granted `contents: write`. The build matrix can no longer write to the repo.
+
 ## [0.1.0] — 2026-04-27
 
 First public release. `pdf-to-webpage` converts a PDF presentation into a self-contained, full-width slide viewer webpage as a single Go binary with no runtime dependencies.
@@ -99,4 +112,5 @@ output-dir/
 - Go 1.25
 - Module path: `github.com/anantshri/pdf-to-webpage`
 
+[0.1.1]: https://github.com/anantshri/pdf-to-webpage/releases/tag/v0.1.1
 [0.1.0]: https://github.com/anantshri/pdf-to-webpage/releases/tag/v0.1.0
