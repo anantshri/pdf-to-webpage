@@ -7,19 +7,31 @@
 package main
 
 import (
+	"crypto/rand"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"html/template"
+	"image"
+	_ "image/jpeg"
+	_ "image/png"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 	"unicode"
+
+	_ "github.com/chai2010/webp"
 
 	"github.com/anantshri/pdf-to-webpage/internal/render"
 	"github.com/anantshri/pdf-to-webpage/internal/site"
+	"github.com/anantshri/pdf-to-webpage/internal/watermark"
 )
 
-const pdfDownloadName = "slides.pdf"
+const (
+	pdfDownloadName = "slides.pdf"
+	manifestName    = "fingerprint.json"
+)
 
 func main() {
 	os.Setenv("GODEBUG", "asyncpreemptoff=1")
@@ -31,14 +43,17 @@ func main() {
 
 func run() error {
 	var (
-		outDir        string
-		dpi           float64
-		maxWidth      int
-		title         string
-		headerFile    string
-		footerFile    string
-		force         bool
-		allowDownload bool
+		outDir         string
+		dpi            float64
+		maxWidth       int
+		title          string
+		headerFile     string
+		footerFile     string
+		force          bool
+		allowDownload  bool
+		fingerprint    string
+		noFingerprint  bool
+		extractPath    string
 	)
 	flag.StringVar(&outDir, "o", "", "output folder (default: derived from PDF basename)")
 	flag.Float64Var(&dpi, "dpi", 300, "render DPI for PDF rasterisation")
@@ -48,11 +63,19 @@ func run() error {
 	flag.StringVar(&footerFile, "footer", "", "HTML file injected below the slide viewer")
 	flag.BoolVar(&force, "force", false, "wipe and overwrite an existing output folder")
 	flag.BoolVar(&allowDownload, "allow-download", true, "include the PDF in output and show the download button")
+	flag.StringVar(&fingerprint, "fingerprint", "", "watermark identifier embedded in every slide (default: random UUID)")
+	flag.BoolVar(&noFingerprint, "no-fingerprint", false, "disable invisible watermarking")
+	flag.StringVar(&extractPath, "extract", "", "extract the fingerprint hash from a watermarked image and exit")
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "usage: %s [flags] <slides.pdf>\n\n", filepath.Base(os.Args[0]))
+		fmt.Fprintf(os.Stderr, "usage: %s [flags] <slides.pdf>\n", filepath.Base(os.Args[0]))
+		fmt.Fprintf(os.Stderr, "       %s -extract <image>\n\n", filepath.Base(os.Args[0]))
 		flag.PrintDefaults()
 	}
 	flag.Parse()
+
+	if extractPath != "" {
+		return runExtract(extractPath)
+	}
 
 	if flag.NArg() != 1 {
 		flag.Usage()
@@ -84,12 +107,26 @@ func run() error {
 		return fmt.Errorf("footer: %w", err)
 	}
 
+	effectiveFingerprint := ""
+	if !noFingerprint {
+		if fingerprint != "" {
+			effectiveFingerprint = fingerprint
+		} else {
+			gen, err := newUUID()
+			if err != nil {
+				return fmt.Errorf("generate fingerprint: %w", err)
+			}
+			effectiveFingerprint = gen
+		}
+	}
+
 	imagesDir := filepath.Join(outDir, "images")
 	fmt.Printf("[pdf-to-webpage] rasterising %s @ %.0f dpi → %s\n", pdfPath, dpi, imagesDir)
 	res, err := render.Pages(pdfPath, imagesDir, render.Options{
-		DPI:      dpi,
-		MaxWidth: maxWidth,
-		Quality:  100,
+		DPI:         dpi,
+		MaxWidth:    maxWidth,
+		Quality:     100,
+		Fingerprint: effectiveFingerprint,
 	})
 	if err != nil {
 		return err
@@ -128,9 +165,82 @@ func run() error {
 		}
 	}
 
+	if effectiveFingerprint != "" {
+		hash := watermark.HashFingerprint(effectiveFingerprint)
+		if err := writeManifest(outDir, effectiveFingerprint, hash, res.PageCount, pdfPath); err != nil {
+			return fmt.Errorf("write manifest: %w", err)
+		}
+		fmt.Printf("[pdf-to-webpage] fingerprint: %s (hash: %s)\n", effectiveFingerprint, hash)
+	}
+
 	fmt.Printf("[pdf-to-webpage] done → %s/\n", outDir)
 	fmt.Printf("    serve with: cd %s && python3 -m http.server\n", outDir)
 	return nil
+}
+
+// runExtract reads an image (WebP/PNG/JPEG) and prints the embedded
+// fingerprint hash on success, or returns an error if no watermark is
+// detected.
+func runExtract(path string) error {
+	f, err := os.Open(path)
+	if err != nil {
+		return fmt.Errorf("open %s: %w", path, err)
+	}
+	defer f.Close()
+	img, _, err := image.Decode(f)
+	if err != nil {
+		return fmt.Errorf("decode %s: %w", path, err)
+	}
+	hash, ok, err := watermark.Extract(img)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return fmt.Errorf("no watermark detected in %s", path)
+	}
+	fmt.Println(hash)
+	return nil
+}
+
+// newUUID returns a freshly generated RFC 4122 v4 UUID string.
+func newUUID() (string, error) {
+	var b [16]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		return "", err
+	}
+	b[6] = (b[6] & 0x0f) | 0x40
+	b[8] = (b[8] & 0x3f) | 0x80
+	return fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:16]), nil
+}
+
+type manifest struct {
+	Version     int     `json:"version"`
+	Fingerprint string  `json:"fingerprint"`
+	Hash        string  `json:"hash"`
+	Algorithm   string  `json:"algorithm"`
+	Delta       float64 `json:"delta"`
+	Created     string  `json:"created"`
+	SlideCount  int     `json:"slide_count"`
+	SourcePDF   string  `json:"source_pdf"`
+}
+
+func writeManifest(dir, fingerprint, hash string, slideCount int, sourcePDF string) error {
+	m := manifest{
+		Version:     1,
+		Fingerprint: fingerprint,
+		Hash:        hash,
+		Algorithm:   watermark.Algorithm,
+		Delta:       watermark.Delta,
+		Created:     time.Now().UTC().Format(time.RFC3339),
+		SlideCount:  slideCount,
+		SourcePDF:   filepath.Base(sourcePDF),
+	}
+	data, err := json.MarshalIndent(m, "", "  ")
+	if err != nil {
+		return err
+	}
+	data = append(data, '\n')
+	return os.WriteFile(filepath.Join(dir, manifestName), data, 0o644)
 }
 
 func prepareOutDir(dir string, force bool) error {

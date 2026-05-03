@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/anantshri/pdf-to-webpage/internal/watermark"
 	"github.com/chai2010/webp"
 	"github.com/gen2brain/go-fitz"
 	"golang.org/x/image/draw"
@@ -18,9 +19,10 @@ import (
 
 // Options controls how the PDF is rasterised.
 type Options struct {
-	DPI      float64 // render DPI passed to MuPDF (e.g. 300)
-	MaxWidth int     // pages wider than this are downscaled; 0 disables
-	Quality  float32 // WebP quality 0-100
+	DPI         float64 // render DPI passed to MuPDF (e.g. 300)
+	MaxWidth    int     // pages wider than this are downscaled; 0 disables
+	Quality     float32 // WebP quality 0-100
+	Fingerprint string  // if non-empty, embed an invisible watermark of this string in every page
 }
 
 // Result describes the rendered output.
@@ -66,7 +68,14 @@ func Pages(pdfPath, imagesDir string, opt Options) (Result, error) {
 			return Result{}, fmt.Errorf("render page %d: %w", i+1, err)
 		}
 
-		out := downscale(img, opt.MaxWidth)
+		var out image.Image = downscale(img, opt.MaxWidth)
+		if opt.Fingerprint != "" {
+			marked, werr := watermark.Embed(out, opt.Fingerprint)
+			if werr != nil {
+				return Result{}, fmt.Errorf("watermark page %d: %w", i+1, werr)
+			}
+			out = marked
+		}
 		if i == 0 {
 			b := out.Bounds()
 			firstW, firstH = b.Dx(), b.Dy()
